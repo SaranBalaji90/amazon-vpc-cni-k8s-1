@@ -16,6 +16,7 @@ K8S_VERSION=${K8S_VERSION:-1.14.6}
 PROVISION=${PROVISION:-true}
 DEPROVISION=${DEPROVISION:-true}
 BUILD=${BUILD:-true}
+RUN_CONFORMANCE=${RUN_CONFORMANCE:-true}
 
 __cluster_created=0
 __cluster_deprovisioned=0
@@ -167,6 +168,11 @@ GO111MODULE=on go test -v -timeout 0 ./... --kubeconfig=$KUBECONFIG --ginkgo.foc
     --assets=./assets
 TEST_PASS=$?
 popd
+
+if [[ "$RUN_CONFORMANCE" == true ]]; then
+  wget -qO- https://dl.k8s.io/v$K8S_VERSION/kubernetes-test.tar.gz | tar -zxvf - --strip-components=4 -C /tmp  kubernetes/platforms/linux/amd64/e2e.test
+  /tmp/e2e.test --ginkgo.focus="Conformance" --kubeconfig=$KUBECONFIG -alsologtostderr --ginkgo.failFast -ginkgo.flakeAttempts 2 -ginkgo.progress -ginkgo.trace -ginkgo.skip="(should support remote command execution over websockets)|(should support retrieving logs from the container over websockets)"
+fi
 
 if [[ "$DEPROVISION" == true ]]; then
     down-test-cluster

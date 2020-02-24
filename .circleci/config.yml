@@ -3,6 +3,7 @@ version: 2.1
 
 orbs:
   aws-cli: circleci/aws-cli@0.1.19
+  k8s: circleci/kubernetes@0.11.0
 
 jobs:
   build:
@@ -31,6 +32,7 @@ jobs:
       - setup_remote_docker
       - aws-cli/setup:
           profile-name: awstester
+      - k8s/install-kubectl
       - run:
           name: Run the integration tests
           command: ./scripts/run-integration-tests.sh
@@ -50,3 +52,11 @@ workflows:
       - integration_test:
           requires:
             - hold
+  buildtag:
+    jobs:
+      - build:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/

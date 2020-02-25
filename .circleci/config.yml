@@ -1,0 +1,64 @@
+# https://circleci.com/docs/2.0/language-go/
+version: 2.1
+
+orbs:
+  aws-cli: circleci/aws-cli@0.1.19
+  k8s: circleci/kubernetes@0.11.0
+
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.13-stretch
+    working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
+    environment:
+      GO111MODULE: "on"
+    steps:
+      - checkout
+      - run: go get -u golang.org/x/lint/golint
+      - run: go get -u golang.org/x/tools/cmd/goimports
+      - run: make check-format
+      - run: make build-linux
+      - run: make lint
+      - run: make vet
+      - run: make unit-test
+  integration_test:
+    docker:
+      - image: circleci/golang:1.13-stretch
+    working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
+    environment:
+      GO111MODULE: "on"
+    steps:
+      - checkout
+      - setup_remote_docker
+      - aws-cli/setup:
+          profile-name: awstester
+      - k8s/install-kubectl
+      - run:
+          name: Run the integration tests
+          command: ./scripts/run-integration-tests.sh
+          no_output_timeout: 15m
+      - store_artifacts:
+          path: /tmp/cni-test
+
+workflows:
+  version: 2
+  check:
+    jobs:
+      - build
+      - hold:
+          type: approval
+          requires:
+            - build
+      - integration_test:
+          requires:
+            - hold
+  nightly:
+    triggers:
+      - schedule:
+          cron: "25,30,35,40 * * * *"
+          filters:
+            branches:
+              only:
+                - release-1.5.3
+    jobs:
+      - build

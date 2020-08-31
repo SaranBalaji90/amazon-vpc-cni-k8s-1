@@ -74,7 +74,7 @@ const (
 	//     ipamd will make the "warm pool" have 12 IP addresses with 9 being assigned to pods and 3 free IPs.
 	//
 	//     If "MINIMUM_IP_TARGET is not set, it will default to 0, which causes WARM_IP_TARGET settings to be the
-	//	   only settings considered.
+	//     only settings considered.
 	envMinimumIPTarget = "MINIMUM_IP_TARGET"
 	noMinimumIPTarget  = 0
 
